@@ -9,6 +9,7 @@ from PyQt5.QtCore import QEvent
 from DIP_GUI import Ui_MainWindow
 from myQLabel import imgLabel
 from myPcxImage import PcxImage
+from myWindow import ballWindow, bitPlaneWindow, functionWidgetWindow, filterWindow
 
 def err_msgbox(error_msg, func):
     msg_box = QMessageBox()
@@ -32,6 +33,8 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.setup_control()
 
     def setup_control(self):
+
+        self.move(500, 0)
 
         """
         Dicts for managing dynamic components
@@ -72,7 +75,11 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ui.actionOpen.triggered.connect(self.open_file)
         self.ui.actionReset.triggered.connect(self.reset)
 
-        # func_week1
+        # func list
+        self.ui.actionChannelGray_Scale.triggered.connect(lambda: self.channel("gray_scale"))
+        self.ui.actionChannelRed.triggered.connect(lambda: self.channel("red"))
+        self.ui.actionChannelGreen.triggered.connect(lambda: self.channel("green"))
+        self.ui.actionChannelBlue.triggered.connect(lambda: self.channel("blue"))
         self.ui.actionSimple_Dup.triggered.connect(lambda: self.enlarge_img("simple_dup", slider = False))
         self.ui.actionBi_Linear.triggered.connect(lambda: self.enlarge_img("bi_linear", slider = False))
         self.ui.actionNormal_Rotate.triggered.connect(lambda: self.rotate_img("normal", slider = False))
@@ -82,7 +89,45 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ui.actionCircle_Cut.triggered.connect(lambda: self.cut_img("circle", draw = False))
         self.ui.actionMagic_Wand.triggered.connect(lambda: self.magic_wand(select = False))
         self.ui.actionAplha.triggered.connect(lambda: self.alpha(slider = False))
-        self.ui.actionBall.triggered.connect(lambda: self.ball(button = False)) 
+        self.ui.actionBall.triggered.connect(lambda: self.ball()) 
+        self.ui.actionMisaligned.triggered.connect(lambda: self.misaligned())
+        self.ui.actionDithering.triggered.connect(lambda: self.dithering())
+        self.ui.actionNegative.triggered.connect(lambda: self.negative())
+        self.ui.actionMirror.triggered.connect(lambda: self.mirror(button = False))
+        self.ui.actionLT_Mean.triggered.connect(lambda: self.local_threshold("mean", slider = False))
+        self.ui.actionLT_Median.triggered.connect(lambda: self.local_threshold("median", slider = False))
+        self.ui.actionLT_Min_Max_Mean.triggered.connect(lambda: self.local_threshold("min_max_mean", slider = False))
+        self.ui.actionOtsu_Thresholding.triggered.connect(lambda: self.otsu_threshold())
+        self.ui.actionCustom_Thresholding.triggered.connect(lambda: self.custom_threshold(slider = False))
+        self.ui.actionBinary_Bit_Plane.triggered.connect(lambda: self.bit_plane("binary"))
+        self.ui.actionGray_Code_Bit_Plane.triggered.connect(lambda: self.bit_plane("gray_code"))
+        self.ui.actionSimple_Linear_CS.triggered.connect(lambda: self.contrast_stretching("simple_linear"))
+        self.ui.actionPiecewise_Linear_CS.triggered.connect(lambda: self.contrast_stretching("piecewise_linear"))
+        self.ui.actionDiminish_GLS.triggered.connect(lambda: self.gray_level_slicing("diminish_gls"))
+        self.ui.actionPreserve_GLS.triggered.connect(lambda: self.gray_level_slicing("preserve_gls"))
+        self.ui.actionOutlier.triggered.connect(lambda: self.outlier_filter())
+        
+    def enable_menu(self):
+
+        """
+        Enable the function in menu content
+        """
+        self.ui.menuChannel.setEnabled(True)
+        self.ui.menuEnlarge.setEnabled(True)
+        self.ui.menuRotate.setEnabled(True)
+        self.ui.actionShear.setEnabled(True)
+        self.ui.menuCut.setEnabled(True)
+        self.ui.actionMagic_Wand.setEnabled(True)
+        self.ui.actionAplha.setEnabled(True)
+        self.ui.actionMisaligned.setEnabled(True)
+        self.ui.actionDithering.setEnabled(True)
+        self.ui.actionNegative.setEnabled(True)
+        self.ui.actionMirror.setEnabled(True)
+        self.ui.menuThreshold.setEnabled(True)
+        self.ui.menuLocal_Thresholding.setEnabled(True)
+        self.ui.menuBit_Plane.setEnabled(True)
+        self.ui.menuContrast_Stretching.setEnabled(True)
+        self.ui.menuGray_Level_Slicing.setEnabled(True)
 
     def display(self, label, image_array, width, height, posx, posy):
 
@@ -93,7 +138,13 @@ class MainWindowController(QtWidgets.QMainWindow):
         # try:
         # print("size of image_array: {0}".format(image_array.shape))
         img = np.array(image_array, dtype=np.uint8)
-        img = Image.fromarray(img)
+        if img.shape[2] < 3:
+            img = np.reshape(img, (img.shape[0], img.shape[1]))
+            img = Image.fromarray(img, 'L')
+        else:
+            # if label is not self.ui.palette_label:
+            #     self.ui.color_widget.draw_color_histogram(img)
+            img = Image.fromarray(img)
         qt_img = ImageQt.ImageQt(img)
         pixmap_img = QtGui.QPixmap.fromImage(qt_img).scaled(width, height)
         pixmap_img.detach()
@@ -108,18 +159,6 @@ class MainWindowController(QtWidgets.QMainWindow):
         #     err_msgbox("cannot diaplay the image on label", self.display.__name__)
         #     return -1
         return
-
-    def enable_menu(self):
-
-        """
-        Enable the function in menu content
-        """
-        self.ui.menuEnlarge.setEnabled(True)
-        self.ui.menuRotate.setEnabled(True)
-        self.ui.actionShear.setEnabled(True)
-        self.ui.menuCut.setEnabled(True)
-        self.ui.actionMagic_Wand.setEnabled(True)
-        self.ui.actionAplha.setEnabled(True)
 
     def show_header(self):
 
@@ -165,6 +204,7 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ori_img_label.setObjectName("ori_img_label")
         self.ori_img_label.installEventFilter(self)
 
+        self.ui.color_widget.draw_color_histogram(self.ori_pcx.ori_image)
         self.display(self.ori_img_label, self.ori_pcx.ori_image, self.ori_pcx.width, self.ori_pcx.height, -1, -1)
         self.show_header()
 
@@ -183,6 +223,22 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.create_img_label(400, 80, 256, 256, "mod_img")
         self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
         self.flag_dict["mod_rgb_flag"] = False
+        return
+
+    def channel(self, type):
+        if type == "gray_scale":
+            mod_img = self.ori_pcx.gray_image
+            width, height = mod_img.shape[0], mod_img.shape[1]
+            self.ui.gray_widget.draw_gray_histogram(mod_img)
+            self.create_img_label(400, 80, 256, 256, "mod_img")
+            self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+        elif type == "red":
+            pass
+        elif type == "green":
+            pass
+        elif type == "blue":
+            pass
+
         return
 
     def enlarge_img(self, type, slider = True):
@@ -300,41 +356,148 @@ class MainWindowController(QtWidgets.QMainWindow):
         mod_img, width, height = self.ori_pcx.alpha(self.alpha_img, self.alpha_width, self.alpha_height, alpha_value)
         self.create_img_label(400, 80, 256, 256, "mod_img")
         self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+
         return
 
-    def ball(self, button = True):
+    def ball(self):
+        """
+        Call a new window for bouncing ball
+        """
+        ball_window = ballWindow(self)
+        ball_window.show()
+
+        return
+
+    def misaligned(self):
+        misaligned_offset = 5
+        mod_img, width, height = self.ori_pcx.misaligned(misaligned_offset)
+        self.create_img_label(400, 80, 256, 256, "mod_img")
+        self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+
+        return
+
+    def dithering(self):
+        depth = 5
+        mod_img, width, height = self.ori_pcx.dithering(depth)
+        self.create_img_label(400, 80, 256, 256, "mod_img")
+        self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+
+        return
+
+    def negative(self):
+        mod_img, width, height = self.ori_pcx.negative()
+        self.create_img_label(400, 80, 256, 256, "mod_img")
+        self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+        
+        return
+
+    def mirror(self, button = True):
         if button == False:
-            # set button and slider
-            name = "ball_btn"
-            self.create_button(60, 540, 93, 28, name, "ball")
-            self.button_dict[name].clicked.connect(lambda: self.ball_control())
-
-            # show the ball image and initialize the variables
-            self.flag_dict["ball_flag"] = False
-            self.ball_vector = np.array([1, 0.5])
-            self.ball_speed = 10
-            self.ball_pcx = PcxImage()
-            self.ball_img, width, height, self.ball_center, self.vector = self.ball_pcx.ball("create")
+            # create button with text representing depending on the mirror status (flag)
+            self.mirror_op_list = ["vertical", "horizontal", "45", "135"]
+            self.flag_dict["mirror_flag"] = 0
+            self.create_button(60, 530, 93, 28, "mirror_btn", "vertical")
+            self.button_dict["mirror_btn"].clicked.connect(lambda: self.mirror(button = True))
+            mod_img, width, height = self.ori_pcx.mirror("vertical")
             self.create_img_label(400, 80, 256, 256, "mod_img")
-            self.display(self.img_label_dict["mod_img"], self.ball_img, width, height, -1, -1)
+            self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
             return
-
-    def bouncing_ball(self):
-        while self.flag_dict["ball_flag"] == True:
-            self.ball_img, width, height, self.ball_center, self.vector = \
-                self.ball_pcx.ball("bouncing", center = self.ball_center, vector = self.ball_vector, speed = self.ball_speed)
+        # show the result depend on the mirror status
+        if button == True:
+            self.flag_dict["mirror_flag"] = (self.flag_dict["mirror_flag"] + 1)%4
+            new_op = self.mirror_op_list[self.flag_dict["mirror_flag"]]
+            mod_img, width, height = self.ori_pcx.mirror(new_op)
             self.create_img_label(400, 80, 256, 256, "mod_img")
-            self.display(self.img_label_dict["mod_img"], self.ball_img, width, height, -1, -1)
-            sleep(0.5)
+            self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+            _translate = QtCore.QCoreApplication.translate
+            self.button_dict["mirror_btn"].setText(_translate("MainWindow", new_op))
         return
 
-    def ball_control(self):
-        if self.flag_dict["ball_flag"] == False:
-            self.flag_dict["ball_flag"] = True
-            self.bouncing_ball()
-            # _thread.start_new_thread(self.bouncing_ball, ())
-        elif self.flag_dict["ball_flag"] == True:
-            self.flag_dict["ball_flag"] = False
+    def custom_threshold(self, slider = True):
+        if slider == False:
+            self.ui.gray_widget.draw_gray_histogram(self.ori_pcx.gray_image)
+            self.display(self.ori_img_label, self.ori_pcx.gray_image, \
+                self.ori_pcx.gray_image.shape[0], self.ori_pcx.gray_image.shape[1], -1, -1)
+            name = "threshold_label"
+            slider_num = "\n0                                             255"
+            self.create_label(160, 710, 240, 100, name, "threshold" + slider_num)
+
+            name = "threshold_slider"
+            self.create_slider(200, 760, 160, 22, name, 0, 255, 0.5)
+            self.slider_dict[name].valueChanged.connect(lambda: self.custom_threshold(slider = True))
+            return
+        threshold_value = self.slider_dict["threshold_slider"].value()
+        self.ui.gray_widget.draw_gray_histogram(self.ori_pcx.gray_image, threshold = threshold_value)
+        mod_img, width, height = self.ori_pcx.custom_threshold(threshold_value)
+        self.create_img_label(400, 80, 256, 256, "mod_img")
+        self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+
+        return
+
+    def local_threshold(self, type, kernel_size = 7, slider = True):
+        if slider == False:
+            self.ui.gray_widget.draw_gray_histogram(self.ori_pcx.gray_image)
+            self.display(self.ori_img_label, self.ori_pcx.gray_image, \
+                self.ori_pcx.gray_image.shape[0], self.ori_pcx.gray_image.shape[1], -1, -1)
+            name = "local_threshold_label"
+            slider_num = "\n0                                             10"
+            self.create_label(160, 790, 240, 100, name, "local_threshold" + slider_num)
+
+            name = "local_threshold_slider"
+            self.create_slider(200, 840, 160, 22, name, 0, 10, 0.5)
+            self.slider_dict[name].valueChanged.connect(lambda: self.local_threshold(type, slider = True))
+            return
+        C = self.slider_dict["local_threshold_slider"].value()
+        mod_img, width, height = self.ori_pcx.local_threshold(type, kernel_size, C)
+        self.create_img_label(400, 80, 256, 256, "mod_img")
+        self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+
+        return
+
+    def otsu_threshold(self):
+        self.ui.gray_widget.draw_gray_histogram(self.ori_pcx.gray_image)
+        self.display(self.ori_img_label, self.ori_pcx.gray_image, \
+            self.ori_pcx.gray_image.shape[0], self.ori_pcx.gray_image.shape[1], -1, -1)
+        threshold_value = self.ori_pcx.otsu_threshold()
+        mod_img, width, height = self.ori_pcx.custom_threshold(threshold_value)
+        self.ui.gray_widget.draw_gray_histogram(self.ori_pcx.gray_image, threshold_value)
+        self.create_img_label(400, 80, 256, 256, "mod_img")
+        self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+
+        return
+
+    def bit_plane(self, type):
+        bit_plane_win = bitPlaneWindow(self.ori_pcx, type, self)
+        bit_plane_win.show()
+
+        return
+
+    def contrast_stretching(self, type):
+        if type == "simple_linear":
+            self.ui.gray_widget.draw_gray_histogram(self.ori_pcx.gray_image)
+            self.display(self.ori_img_label, self.ori_pcx.gray_image, \
+                self.ori_pcx.gray_image.shape[0], self.ori_pcx.gray_image.shape[1], -1, -1)
+            mod_img, width, height = self.ori_pcx.contrast_stretching(type)
+            self.ui.gray_widget.draw_gray_histogram(mod_img)
+            self.create_img_label(400, 80, 256, 256, "mod_img")
+            self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
+        elif type == "piecewise_linear":
+            # open contrast stretching window
+            contrast_stretching_win = functionWidgetWindow(self.ori_pcx, "contrast_stretching", self)
+            contrast_stretching_win.show()
+            
+        return
+
+    def gray_level_slicing(self, type):
+        gray_level_slicing_win = functionWidgetWindow(self.ori_pcx, type, self)
+        gray_level_slicing_win.show()
+
+        return
+
+    def outlier_filter(self):
+        outlier_filter_win = filterWindow(self.ori_pcx, "outlier", self)
+        outlier_filter_win.show()
+
         return
 
     def eventFilter(self, obj, event):

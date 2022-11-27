@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1080</width>
-    <height>720</height>
+    <width>1300</width>
+    <height>1030</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,10 +17,10 @@
    <widget class="QLabel" name="header_label">
     <property name="geometry">
      <rect>
-      <x>770</x>
-      <y>140</y>
-      <width>261</width>
-      <height>511</height>
+      <x>800</x>
+      <y>20</y>
+      <width>421</width>
+      <height>441</height>
      </rect>
     </property>
     <property name="text">
@@ -30,8 +30,8 @@
    <widget class="QLabel" name="palette_label">
     <property name="geometry">
      <rect>
-      <x>770</x>
-      <y>10</y>
+      <x>800</x>
+      <y>500</y>
       <width>96</width>
       <height>96</height>
      </rect>
@@ -40,13 +40,33 @@
      <string/>
     </property>
    </widget>
+   <widget class="histogramWidget" name="color_widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>630</y>
+      <width>421</width>
+      <height>171</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="histogramWidget" name="gray_widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>810</y>
+      <width>421</width>
+      <height>161</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1080</width>
+     <width>1300</width>
      <height>26</height>
     </rect>
    </property>
@@ -96,12 +116,92 @@
      <addaction name="actionRect_Cut"/>
      <addaction name="actionCircle_Cut"/>
     </widget>
+    <widget class="QMenu" name="menuThreshold">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Threshold</string>
+     </property>
+     <widget class="QMenu" name="menuLocal_Thresholding">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="title">
+       <string>Local Thresholding</string>
+      </property>
+      <addaction name="actionLT_Mean"/>
+      <addaction name="actionLT_Median"/>
+      <addaction name="actionLT_Min_Max_Mean"/>
+     </widget>
+     <addaction name="menuLocal_Thresholding"/>
+     <addaction name="actionOtsu_Thresholding"/>
+     <addaction name="actionCustom_Thresholding"/>
+    </widget>
+    <widget class="QMenu" name="menuBit_Plane">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Bit Plane</string>
+     </property>
+     <addaction name="actionBinary_Bit_Plane"/>
+     <addaction name="actionGray_Code_Bit_Plane"/>
+    </widget>
+    <widget class="QMenu" name="menuContrast_Stretching">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Contrast Stretching</string>
+     </property>
+     <addaction name="actionSimple_Linear_CS"/>
+     <addaction name="actionPiecewise_Linear_CS"/>
+    </widget>
+    <widget class="QMenu" name="menuChannel">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Channel</string>
+     </property>
+     <addaction name="actionChannelGray_Scale"/>
+     <addaction name="actionChannelRed"/>
+     <addaction name="actionChannelGreen"/>
+     <addaction name="actionChannelBlue"/>
+    </widget>
+    <widget class="QMenu" name="menuGray_Level_Slicing">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Gray Level Slicing</string>
+     </property>
+     <addaction name="actionDiminish_GLS"/>
+     <addaction name="actionPreserve_GLS"/>
+    </widget>
+    <widget class="QMenu" name="menuFilter">
+     <property name="title">
+      <string>Filter</string>
+     </property>
+     <addaction name="actionOutlier"/>
+    </widget>
+    <addaction name="menuChannel"/>
     <addaction name="menuEnlarge"/>
     <addaction name="menuRotate"/>
     <addaction name="actionShear"/>
     <addaction name="menuCut"/>
     <addaction name="actionMagic_Wand"/>
     <addaction name="actionAplha"/>
+    <addaction name="actionMisaligned"/>
+    <addaction name="actionDithering"/>
+    <addaction name="actionNegative"/>
+    <addaction name="actionMirror"/>
+    <addaction name="menuThreshold"/>
+    <addaction name="menuBit_Plane"/>
+    <addaction name="menuContrast_Stretching"/>
+    <addaction name="menuGray_Level_Slicing"/>
+    <addaction name="menuFilter"/>
    </widget>
    <widget class="QMenu" name="menuAnimation">
     <property name="enabled">
@@ -193,7 +293,127 @@
     <string>Ball</string>
    </property>
   </action>
+  <action name="actionMisaligned">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Misaligned</string>
+   </property>
+  </action>
+  <action name="actionDithering">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Dithering</string>
+   </property>
+  </action>
+  <action name="actionNegative">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Negative</string>
+   </property>
+  </action>
+  <action name="actionMirror">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Mirror</string>
+   </property>
+  </action>
+  <action name="actionLT_Mean">
+   <property name="text">
+    <string>LT_Mean</string>
+   </property>
+  </action>
+  <action name="actionLT_Median">
+   <property name="text">
+    <string>LT_Median</string>
+   </property>
+  </action>
+  <action name="actionLT_Min_Max_Mean">
+   <property name="text">
+    <string>LT_Min_Max_Mean</string>
+   </property>
+  </action>
+  <action name="actionOtsu_Thresholding">
+   <property name="text">
+    <string>Otsu Thresholding</string>
+   </property>
+  </action>
+  <action name="actionCustom_Thresholding">
+   <property name="text">
+    <string>Custom Thresholding</string>
+   </property>
+  </action>
+  <action name="actionBinary_Bit_Plane">
+   <property name="text">
+    <string>Binary_Bit_Plane</string>
+   </property>
+  </action>
+  <action name="actionGray_Code_Bit_Plane">
+   <property name="text">
+    <string>Gray_Code_Bit_Plane</string>
+   </property>
+  </action>
+  <action name="actionSimple_Linear_CS">
+   <property name="text">
+    <string>Simple Linear CS</string>
+   </property>
+  </action>
+  <action name="actionPiecewise_Linear_CS">
+   <property name="text">
+    <string>Piecewise Linear CS</string>
+   </property>
+  </action>
+  <action name="actionChannelGray_Scale">
+   <property name="text">
+    <string>Gray Scale</string>
+   </property>
+  </action>
+  <action name="actionChannelRed">
+   <property name="text">
+    <string>Red</string>
+   </property>
+  </action>
+  <action name="actionChannelGreen">
+   <property name="text">
+    <string>Green</string>
+   </property>
+  </action>
+  <action name="actionChannelBlue">
+   <property name="text">
+    <string>Blue</string>
+   </property>
+  </action>
+  <action name="actionDiminish_GLS">
+   <property name="text">
+    <string>Diminish</string>
+   </property>
+  </action>
+  <action name="actionPreserve_GLS">
+   <property name="text">
+    <string>Preserve</string>
+   </property>
+  </action>
+  <action name="actionOutlier">
+   <property name="text">
+    <string>Outlier</string>
+   </property>
+  </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>histogramWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">histogramwidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
