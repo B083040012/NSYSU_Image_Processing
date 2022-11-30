@@ -11,6 +11,9 @@ class imgLabel(QtWidgets.QLabel):
         self.radius = None
         self.cut_circle = False
         self.cut_rect = False
+        self.block_flag = False
+        self.block_x = None
+        self.block_y = None
 
     def reset_cut_flags(self):
         self.begin = None
@@ -23,13 +26,15 @@ class imgLabel(QtWidgets.QLabel):
     def paintEvent(self, QPaintEvent):
         super(imgLabel, self).paintEvent(QPaintEvent)
         painter = QtGui.QPainter(self)
-        br = QtGui.QBrush(QtGui.QColor(100, 10, 10, 40))  
+        br = QtGui.QBrush(QtGui.QColor(255, 10, 10, 100))  
         painter.setBrush(br)
         if self.cut_rect == True:
             painter.drawRect(QtCore.QRect(self.begin, self.end))
         elif self.cut_circle == True:
             painter.drawEllipse(QtCore.QPoint(self.centroid.x(), self.centroid.y()), self.radius, self.radius)
-        return
+        elif self.block_flag == True:
+            painter.drawRect(QtCore.QRect(self.block_x, self.block_y, 8, 8))
+        return  
 
     # def set_status_bar(self, status_bar):
     #     self.status_bar = status_bar

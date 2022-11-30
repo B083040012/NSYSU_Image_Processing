@@ -69,6 +69,7 @@ class Ui_MainWindow(object):
         self.menuGray_Level_Slicing.setEnabled(False)
         self.menuGray_Level_Slicing.setObjectName("menuGray_Level_Slicing")
         self.menuFilter = QtWidgets.QMenu(self.menuFunc)
+        self.menuFilter.setEnabled(False)
         self.menuFilter.setObjectName("menuFilter")
         self.menuAnimation = QtWidgets.QMenu(self.menubar)
         self.menuAnimation.setEnabled(True)
@@ -150,6 +151,8 @@ class Ui_MainWindow(object):
         self.actionPreserve_GLS.setObjectName("actionPreserve_GLS")
         self.actionOutlier = QtWidgets.QAction(MainWindow)
         self.actionOutlier.setObjectName("actionOutlier")
+        self.actionVideo = QtWidgets.QAction(MainWindow)
+        self.actionVideo.setObjectName("actionVideo")
         self.menu_File.addAction(self.actionOpen)
         self.menuSettings.addAction(self.actionReset)
         self.menuEnlarge.addAction(self.actionSimple_Dup)
@@ -191,6 +194,7 @@ class Ui_MainWindow(object):
         self.menuFunc.addAction(self.menuContrast_Stretching.menuAction())
         self.menuFunc.addAction(self.menuGray_Level_Slicing.menuAction())
         self.menuFunc.addAction(self.menuFilter.menuAction())
+        self.menuFunc.addAction(self.actionVideo)
         self.menuAnimation.addAction(self.actionBall)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menuFunc.menuAction())
@@ -249,6 +253,7 @@ class Ui_MainWindow(object):
         self.actionDiminish_GLS.setText(_translate("MainWindow", "Diminish"))
         self.actionPreserve_GLS.setText(_translate("MainWindow", "Preserve"))
         self.actionOutlier.setText(_translate("MainWindow", "Outlier"))
+        self.actionVideo.setText(_translate("Mainwindow", "Video"))
 from histogramwidget import histogramWidget
 
 

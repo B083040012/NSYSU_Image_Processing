@@ -10,6 +10,7 @@ from DIP_GUI import Ui_MainWindow
 from myQLabel import imgLabel
 from myPcxImage import PcxImage
 from myWindow import ballWindow, bitPlaneWindow, functionWidgetWindow, filterWindow
+from myVideoWindow import videoWindow
 
 def err_msgbox(error_msg, func):
     msg_box = QMessageBox()
@@ -106,6 +107,7 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ui.actionDiminish_GLS.triggered.connect(lambda: self.gray_level_slicing("diminish_gls"))
         self.ui.actionPreserve_GLS.triggered.connect(lambda: self.gray_level_slicing("preserve_gls"))
         self.ui.actionOutlier.triggered.connect(lambda: self.outlier_filter())
+        self.ui.actionVideo.triggered.connect(lambda: self.video())
         
     def enable_menu(self):
 
@@ -497,6 +499,12 @@ class MainWindowController(QtWidgets.QMainWindow):
     def outlier_filter(self):
         outlier_filter_win = filterWindow(self.ori_pcx, "outlier", self)
         outlier_filter_win.show()
+
+        return
+
+    def video(self):
+        video_win = videoWindow(self)
+        video_win.show()
 
         return
 

@@ -68,6 +68,23 @@ class glsFunctionWidget(QWidget):
         self.mod_level = ydata
         self.draw_line()
 
+class PSNR_Widget(QWidget):
+    def __init__(self, parent):
+        QWidget.__init__(self, parent)
+        self.canvas = FigureCanvas(Figure())
+
+        vertical_layout = QVBoxLayout()
+        vertical_layout.addWidget(self.canvas)
+        self.canvas.axes = None
+
+    def initial_subplot(self):
+        self.setLayout(self.vertical_layout)
+        self.canvas.axes = self.canvas.figure.add_plot(111)
+
+    def draw_psnr_graph(self):
+        pass
+
+
 
 class csFunctionWidget(QWidget):
     def __init__(self, parent):

@@ -202,7 +202,7 @@ class filterWindow(QMainWindow):
 
         self.ori_pcx = pcx_obj
         self.type = type
-        self.noise_img = self.ori_pcx.gray_image
+        self.noise_img = np.copy(self.ori_pcx.gray_image)
 
         # create label for image
         self.ori_img_label = self.create_label(100, 100, 256, 256, "ori_img_label", "")
