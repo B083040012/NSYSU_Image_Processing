@@ -191,8 +191,11 @@ class MainWindowController(QtWidgets.QMainWindow):
 
 
     def open_file(self):
-        filename, filetype = QFileDialog.getOpenFileName(self, "Open File", "./ImagePCX")
-
+        try:
+            filename, filetype = QFileDialog.getOpenFileName(self, "Open File", "./ImagePCX")
+        except:
+            return -1
+            
         self.ori_pcx = PcxImage()
         self.ori_pcx.read_from_filename(filename)
         self.ori_pcx.decode_image()

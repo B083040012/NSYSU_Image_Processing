@@ -18,7 +18,7 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.header_label = QtWidgets.QLabel(self.centralwidget)
-        self.header_label.setGeometry(QtCore.QRect(800, 20, 421, 441))
+        self.header_label.setGeometry(QtCore.QRect(800, 40, 421, 441))
         self.header_label.setText("")
         self.header_label.setObjectName("header_label")
         self.palette_label = QtWidgets.QLabel(self.centralwidget)

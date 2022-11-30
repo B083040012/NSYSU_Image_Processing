@@ -17,26 +17,13 @@ class videoWindow(QMainWindow):
         super(videoWindow, self).__init__(parent)
 
         self.setObjectName("video_mainwindow")
-        # self.setGeometry(100, 100, 1500, 800)
-        self.resize(1500, 800)
+        self.setGeometry(300, 100, 1000, 800)
+        # self.resize(1500, 800)
         self.setWindowTitle("video MainWindow")
 
         """
         Menubar initialize
         """
-        # self.menubar = QtWidgets.QMenuBar(self)
-        # self.menubar.setGeometry(QtCore.QRect(0, 0, 1300, 26))
-        # self.menubar.setObjectName("menubar")
-        # self.menu_File = QtWidgets.QMenu(self.menubar)
-        # self.menu_File.setObjectName("menu_File")
-        # self.menubar.addAction(self.menu_File.menuAction())
-        # self.actionOpen = QtWidgets.QAction(self.menubar)
-        # self.actionOpen.setObjectName("actionOpen")
-        # self.menu_File.addAction(self.actionOpen)
-        # _translate = QtCore.QCoreApplication.translate
-        # self.menu_File.setTitle(_translate("MainWindow", "&File"))
-        # self.actionOpen.setText(_translate("MainWindow", "Open"))
-
         self.menubar = QtWidgets.QMenuBar(self)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1500, 26))
         self.menubar.setObjectName("menubar")
@@ -58,11 +45,15 @@ class videoWindow(QMainWindow):
         self.menu_Setting.setTitle(_translate("MainWindow", "Setting"))
         self.actionMotionCompensation.setText(_translate("MainWindow", "Motion Compensation"))
 
+        self.statusbar = QtWidgets.QStatusBar(self)
+        self.statusbar.setObjectName("statusbar")
+        self.setStatusBar(self.statusbar)
+
         """
         Action trigger definition
         """
         self.actionOpen.triggered.connect(lambda: self.open_file())
-        self.actionMotionCompensation.triggered.connect(lambda: self.motion_compensation())
+        self.actionMotionCompensation.triggered.connect(lambda: self.set_mc_component())
 
         """
         Window components initialization
@@ -75,7 +66,10 @@ class videoWindow(QMainWindow):
         self.psnr_widget.setGeometry(QtCore.QRect(500, 500, 256, 256))
 
     def open_file(self):
-        filenames, filetype = QFileDialog.getOpenFileNames(self, "Open File", "./sequence/")
+        try:
+            filenames, filetype = QFileDialog.getOpenFileNames(self, "Open File", "./sequence/")
+        except:
+            return -1
 
         self.my_mpeg = mpegVideo()
         self.my_mpeg.read_from_filename(filenames)
@@ -85,12 +79,12 @@ class videoWindow(QMainWindow):
         Show the button group
         """
         self.button_dict = dict()
-        self.create_button(40, 400, 35, 20, "slow", "slow")
-        self.create_button(90, 400, 35, 20, "prev", "prev")
-        self.create_button(140, 400, 35, 20, "play", "play")
-        self.create_button(190, 400, 35, 20, "pause", "paus")
-        self.create_button(240, 400, 35, 20, "next", "next")
-        self.create_button(290, 400, 35, 20, "acc", "acc")
+        self.create_button(80, 400, 35, 20, "slow", "slow")
+        self.create_button(130, 400, 35, 20, "prev", "prev")
+        self.create_button(180, 400, 35, 20, "play", "play")
+        self.create_button(230, 400, 35, 20, "pause", "paus")
+        self.create_button(280, 400, 35, 20, "next", "next")
+        self.create_button(330, 400, 35, 20, "acc", "acc")
 
         self.button_dict["slow"].clicked.connect(lambda: self.slow())
         self.button_dict["prev"].clicked.connect(lambda: self.prev())
@@ -101,15 +95,45 @@ class videoWindow(QMainWindow):
 
         return
 
+    def difference_coding(self):
+        """
+        Create label for block
+        """
+        self.create_img_label(400, 100, 64, 64, "matching_block")
+        self.create_img_label(400, 200, 64, 64, "prev_matching_block")
+        self.create_img_label(400, 300, 64, 64, "sub_motion_map")
+        self.create_img_label(800, 100, 64, 64, "target_block")
+        self.create_img_label(800, 200, 64, 64, "prev_target_block")
+        block_size = 8
+        
+        return
+
+    def set_mc_component(self):
+        self.create_button(900, 300, 93, 28, "mc_process_button", "Start")
+        self.button_dict["mc_process_button"].clicked.connect(lambda: self.motion_compensation())
+        self.radio_button_list = dict()
+        self.block_size_btn_group = QtWidgets.QButtonGroup(self)
+        self.block_size_btn_group.setObjectName("button_group")
+        for size in range(8, 9, 8):
+            name = "block_size_radio_btn_{0}".format(size) 
+            self.radio_button_list[name] = self.create_radio_button(900, 100 + (int(size / 8 - 1) * 20), 98, 19, \
+                name, "{0} * {0}".format(size))
+            self.block_size_btn_group.addButton(self.radio_button_list[name], size)
+
     def motion_compensation(self):
         """
         Create label for block
         """
         self.create_img_label(400, 100, 64, 64, "matching_block")
+        self.create_img_label(400, 200, 64, 64, "prev_matching_block")
+        self.create_img_label(400, 300, 64, 64, "sub_motion_map")
         self.create_img_label(800, 100, 64, 64, "target_block")
-        block_size = 8
+        self.create_img_label(800, 200, 64, 64, "prev_target_block")
+        block_size = self.block_size_btn_group.checkedId()
+        print("block_size: {0}".format(block_size))
+        self.motion_vector_list = list()
         for current_frame_index in range(1, self.my_mpeg.total_frame_num):
-            reference_frame  = self.my_mpeg.frame_list[current_frame_index - 1]
+            reference_frame  = self.my_mpeg.compress_frame_list[current_frame_index - 1]
             current_frame = self.my_mpeg.frame_list[current_frame_index]
             self.display(self.img_label_dict["ori_display"], reference_frame, 256, 256, -1, -1)
             self.display(self.img_label_dict["new_display"], current_frame, 256, 256, -1, -1)
@@ -118,13 +142,13 @@ class videoWindow(QMainWindow):
             Comparing matching and target block
             """
             width, height = current_frame.shape[0], current_frame.shape[1]
-            print("width: {0}, height: {1}".format(width, height))
+            # print("width: {0}, height: {1}".format(width, height))
             for target_x in range(0, width, block_size):
                 for target_y in range(0, height, block_size):
                     print("target_x: {0}, target_y: {1}".format(target_x, target_y))
                     motion_vector_tmp = [0, 0]
                     difference = 999
-                    target_block = current_frame[target_y:(target_y + block_size), target_x:(target_x + block_size)]
+                    target_block = current_frame[target_x:(target_x + block_size), target_y:(target_y + block_size)]
                     self.display(self.img_label_dict["target_block"], target_block, 64, 64, -1, -1)
                     QApplication.processEvents()
                     """
@@ -135,14 +159,12 @@ class videoWindow(QMainWindow):
                     self.img_label_dict["new_display"].block_y = target_x
                     self.update()
                     QApplication.processEvents()
-                    # target_painter = QtGui.QPainter(self.img_label_dict["new_display"])
-                    # br = QtGui.QBrush(QtGui.QColor(100, 10, 10, 40))  
-                    # target_painter.setBrush(br)
-                    # target_painter.drawRect(QtCore.QRect(target_x, target_y, block_size, block_size))
-                    for match_x in range(0, width - 8):
-                        for match_y in range(0, height - 8):
+                    for match_x in range(0, width - block_size):
+                        for match_y in range(0, height - block_size):
+                    # for match_x in range(0, 30):
+                    #     for match_y in range(0, 30):
                             # print("matching_x: {0}, matching_y: {1}".format(match_x, match_y))
-                            matching_block = reference_frame[match_y:(match_y + block_size), match_x:(match_x + block_size)]
+                            matching_block = reference_frame[match_x:(match_x + block_size), match_y:(match_y + block_size)]
                             self.display(self.img_label_dict["matching_block"], matching_block, 64, 64, -1, -1)
                             QApplication.processEvents()
                             """
@@ -153,25 +175,30 @@ class videoWindow(QMainWindow):
                             self.img_label_dict["ori_display"].block_y = match_x
                             self.update()
                             QApplication.processEvents()
-                            # matching_painter = QtGui.QPainter(self.img_label_dict["ori_display"])
-                            # br = QtGui.QBrush(QtGui.QColor(100, 10, 10, 40))  
-                            # matching_painter.setBrush(br)
-                            # matching_painter.drawRect(QtCore.QRect(match_x, match_y, block_size, block_size))
                             diff_tmp = abs(int(target_block.sum()) - int(matching_block.sum()))
                             if diff_tmp < difference:
                                 difference = diff_tmp
-                                motion_vector_tmp = [target_y - match_y, target_x - match_x]
-                    print("motion vector: {0}".format(motion_vector_tmp))
-                    
+                                motion_vector_tmp = [-(target_x - match_x), -(target_y - match_y)]
+                                prev_matching_block = matching_block
+                    # print("motion vector: {0}".format(motion_vector_tmp))
+                    sub_map = self.my_mpeg.update_motion_vector_map(target_y, target_x, motion_vector_tmp)
+                    self.motion_vector_list.append(motion_vector_tmp)
+                    self.display(self.img_label_dict["sub_motion_map"], sub_map, 64, 64, -1, -1)
+                    self.display(self.img_label_dict["motion_vector_display"], self.my_mpeg.motion_vector_map, 256, 256, -1, -1)
+                    self.display(self.img_label_dict["prev_target_block"], target_block, 64, 64, -1, -1)
+                    self.display(self.img_label_dict["prev_matching_block"], prev_matching_block, 64, 64, -1, -1)
+                    QApplication.processEvents()   
         return
 
     def next_frame(self):
         self.my_mpeg.update_index("next")
         self.display(self.img_label_dict["ori_display"], self.my_mpeg.frame_list[self.my_mpeg.current_frame_index], 256, 256, -1, -1)
+        self.statusbar.showMessage("frame no.{0}, fps: {1}".format(self.my_mpeg.current_frame_index, self.my_mpeg.fps))
 
     def prev_frame(self):
         self.my_mpeg.update_index("prev")
         self.display(self.img_label_dict["ori_display"], self.my_mpeg.frame_list[self.my_mpeg.current_frame_index], 256, 256, -1, -1)
+        self.statusbar.showMessage("(*reverse) frame no.{0}, fps: {1}".format(self.my_mpeg.current_frame_index, abs(self.my_mpeg.fps)))
 
     def slow(self):
         self.my_mpeg.fps -= 5
@@ -229,7 +256,11 @@ class videoWindow(QMainWindow):
         qt_img = ImageQt.ImageQt(img)
         pixmap_img = QtGui.QPixmap.fromImage(qt_img).scaled(width, height)
         pixmap_img.detach()
-        label.resize(width, height)
+
+        if posx == -1 or posy == -1:
+            label.resize(width, height)
+        else:
+            label.setGeometry(QtCore.QRect(posx, posy, width, height))
         label.setPixmap(pixmap_img)
         label.show()
         # except:
@@ -267,3 +298,13 @@ class videoWindow(QMainWindow):
 
         self.button_dict[name] = btn
         return
+
+    def create_radio_button(self, posx, posy, width, height, name, text):
+        radio_btn = QtWidgets.QRadioButton(self)
+        radio_btn.setGeometry(QtCore.QRect(posx, posy, width, height))
+        radio_btn.setObjectName(name)
+        _translate = QtCore.QCoreApplication.translate
+        radio_btn.setText(_translate("MainWindow", text))
+        radio_btn.show()
+
+        return radio_btn
