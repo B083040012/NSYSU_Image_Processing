@@ -204,6 +204,9 @@ class filterWindow(QMainWindow):
         self.type = type
         self.noise_img = np.copy(self.ori_pcx.gray_image)
 
+        # create label for SNR value
+        self.snr_label = self.create_label(900, 350, 250, 150, "snr_label", "", font = 15)
+
         # create label for image
         self.ori_img_label = self.create_label(100, 100, 256, 256, "ori_img_label", "")
         self.display(self.ori_img_label, self.ori_pcx.gray_image, \
@@ -211,49 +214,158 @@ class filterWindow(QMainWindow):
         self.noise_img_label = self.create_label(500, 100, 256, 256, "noise_img_label", "")
         self.after_img_label = self.create_label(900, 100, 256, 256, "after_img_label", "")
         
+        if type != "gradient" and type != "edge_cris":
+            # create button for showing noise image and processing filter
+            noise_btn = QtWidgets.QPushButton(self)
+            noise_btn.setGeometry(QtCore.QRect(600, 400, 93, 28))
+            noise_btn.setObjectName("noise button")
+            _translate = QtCore.QCoreApplication.translate
+            noise_btn.setText(_translate("MainWindow", "noise_image"))
+            noise_btn.show()
+            noise_btn.clicked.connect(lambda: self.show_noise())
 
-        # create button for showing noise image and processing filter
-        noise_btn = QtWidgets.QPushButton(self)
-        noise_btn.setGeometry(QtCore.QRect(600, 400, 93, 28))
-        noise_btn.setObjectName("noise button")
-        _translate = QtCore.QCoreApplication.translate
-        noise_btn.setText(_translate("MainWindow", "noise_image"))
-        noise_btn.show()
-        noise_btn.clicked.connect(lambda: self.show_noise())
+        if type == "outlier":
+            self.process_btn = QtWidgets.QPushButton(self)
+            self.process_btn.setGeometry(QtCore.QRect(1300, 600, 93, 28))
+            self.process_btn.setObjectName("process button")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn.setText(_translate("MainWindow", "Process"))
+            self.process_btn.show()
+            self.process_btn.clicked.connect(lambda: self.process())
+        elif type == "median":
+            self.process_btn = QtWidgets.QPushButton(self)
+            self.process_btn.setGeometry(QtCore.QRect(1300, 600, 93, 28))
+            self.process_btn.setObjectName("process button")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn.setText(_translate("MainWindow", "Median"))
+            self.process_btn.show()
+            self.process_btn.clicked.connect(lambda: self.process())
 
-        self.process_btn = QtWidgets.QPushButton(self)
-        self.process_btn.setGeometry(QtCore.QRect(1300, 600, 93, 28))
-        self.process_btn.setObjectName("process button")
-        _translate = QtCore.QCoreApplication.translate
-        self.process_btn.setText(_translate("MainWindow", "Process"))
-        self.process_btn.show()
-        self.process_btn.clicked.connect(lambda: self.process())
+            self.pmed_process_btn = QtWidgets.QPushButton(self)
+            self.pmed_process_btn.setGeometry(QtCore.QRect(1300, 500, 93, 28))
+            self.pmed_process_btn.setObjectName("process button")
+            _translate = QtCore.QCoreApplication.translate
+            self.pmed_process_btn.setText(_translate("MainWindow", "PMED"))
+            self.pmed_process_btn.show()
+            self.pmed_process_btn.clicked.connect(lambda: self.process(flag = "PMED"))
+        elif type == "pass":
+            self.low_pass_process_btn = QtWidgets.QPushButton(self)
+            self.low_pass_process_btn.setGeometry(QtCore.QRect(1300, 400, 93, 28))
+            self.low_pass_process_btn.setObjectName("low_pass_btn")
+            _translate = QtCore.QCoreApplication.translate
+            self.low_pass_process_btn.setText(_translate("MainWindow", "Low Pass"))
+            self.low_pass_process_btn.show()
+            self.low_pass_process_btn.clicked.connect(lambda: self.process(flag = "low"))
 
-        # create slider label
-        name = "threshold"
-        slider_num = "\n0                                             255"
-        thre_slider_label = self.create_label(1260, 450, 240, 100, name, name + slider_num)
+            self.high_pass_process_btn = QtWidgets.QPushButton(self)
+            self.high_pass_process_btn.setGeometry(QtCore.QRect(1300, 500, 93, 28))
+            self.high_pass_process_btn.setObjectName("high_pass_btn")
+            _translate = QtCore.QCoreApplication.translate
+            self.high_pass_process_btn.setText(_translate("MainWindow", "High Pass"))
+            self.high_pass_process_btn.show()
+            self.high_pass_process_btn.clicked.connect(lambda: self.process(flag = "high"))
+        elif type == "edge_cris":
+            self.process_btn = QtWidgets.QPushButton(self)
+            self.process_btn.setGeometry(QtCore.QRect(1300, 600, 93, 28))
+            self.process_btn.setObjectName("process button")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn.setText(_translate("MainWindow", "edge_cris"))
+            self.process_btn.show()
+            self.process_btn.clicked.connect(lambda: self.process())
 
-        # create slider for threshold
-        self.thre_slider = QtWidgets.QSlider(self)
-        self.thre_slider.setGeometry(QtCore.QRect(1300, 500, 160, 22))
-        self.thre_slider.setOrientation(QtCore.Qt.Horizontal)
-        self.thre_slider.setObjectName("threshold_slider")
-        self.thre_slider.setValue(0)
-        self.thre_slider.setMinimum(0)
-        self.thre_slider.setMaximum(255)
-        self.thre_slider.setSingleStep(1)
-        self.thre_slider.show()
+        elif type == "high_boost":
+            self.process_btn4 = QtWidgets.QPushButton(self)
+            self.process_btn4.setGeometry(QtCore.QRect(1300, 550, 93, 28))
+            self.process_btn4.setObjectName("process button1")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn4.setText(_translate("MainWindow", "A=1"))
+            self.process_btn4.show()
+            self.process_btn4.clicked.connect(lambda: self.process(flag = 1))
 
-        # create radio button for select the size of filter
-        self.radio_button_list = dict()
-        self.filter_size_btn_group = QtWidgets.QButtonGroup(self)
-        self.filter_size_btn_group.setObjectName("button_group")
-        for size in range(3, 8, 2):
-            name = "filter_size_radio_btn_{0}".format(size) 
-            self.radio_button_list[name] = self.create_radio_button(1300, 100 + (size * 20), 98, 19, \
-                name, "{0} * {0}".format(size))
-            self.filter_size_btn_group.addButton(self.radio_button_list[name], size)
+            self.process_btn1 = QtWidgets.QPushButton(self)
+            self.process_btn1.setGeometry(QtCore.QRect(1300, 600, 93, 28))
+            self.process_btn1.setObjectName("process button1")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn1.setText(_translate("MainWindow", "A=1.1"))
+            self.process_btn1.show()
+            self.process_btn1.clicked.connect(lambda: self.process(flag = 1.1))
+
+            self.process_btn2 = QtWidgets.QPushButton(self)
+            self.process_btn2.setGeometry(QtCore.QRect(1300, 650, 93, 28))
+            self.process_btn2.setObjectName("process button1")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn2.setText(_translate("MainWindow", "A=1.15"))
+            self.process_btn2.show()
+            self.process_btn2.clicked.connect(lambda: self.process(flag = 1.15))
+
+            self.process_btn3 = QtWidgets.QPushButton(self)
+            self.process_btn3.setGeometry(QtCore.QRect(1300, 700, 93, 28))
+            self.process_btn3.setObjectName("process button1")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn3.setText(_translate("MainWindow", "A=1.2"))
+            self.process_btn3.show()
+            self.process_btn3.clicked.connect(lambda: self.process(flag = 1.2))
+
+        elif type == "gradient":
+            self.process_btn1 = QtWidgets.QPushButton(self)
+            self.process_btn1.setGeometry(QtCore.QRect(1300, 600, 93, 28))
+            self.process_btn1.setObjectName("process button1")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn1.setText(_translate("MainWindow", "robert"))
+            self.process_btn1.show()
+            self.process_btn1.clicked.connect(lambda: self.process(flag = "robert"))
+
+            self.process_btn2 = QtWidgets.QPushButton(self)
+            self.process_btn2.setGeometry(QtCore.QRect(1300, 650, 93, 28))
+            self.process_btn2.setObjectName("process button1")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn2.setText(_translate("MainWindow", "Sobel"))
+            self.process_btn2.show()
+            self.process_btn2.clicked.connect(lambda: self.process(flag = "sobel"))
+
+            self.process_btn3 = QtWidgets.QPushButton(self)
+            self.process_btn3.setGeometry(QtCore.QRect(1300, 700, 93, 28))
+            self.process_btn3.setObjectName("process button1")
+            _translate = QtCore.QCoreApplication.translate
+            self.process_btn3.setText(_translate("MainWindow", "Prewitt"))
+            self.process_btn3.show()
+            self.process_btn3.clicked.connect(lambda: self.process(flag = "prewitt"))
+
+        if type == "outlier":
+            # create slider label
+            name = "threshold"
+            slider_num = "\n0                                             255"
+            thre_slider_label = self.create_label(1260, 450, 240, 100, name, name + slider_num)
+
+            # create slider for threshold
+            self.thre_slider = QtWidgets.QSlider(self)
+            self.thre_slider.setGeometry(QtCore.QRect(1300, 500, 160, 22))
+            self.thre_slider.setOrientation(QtCore.Qt.Horizontal)
+            self.thre_slider.setObjectName("threshold_slider")
+            self.thre_slider.setValue(0)
+            self.thre_slider.setMinimum(0)
+            self.thre_slider.setMaximum(255)
+            self.thre_slider.setSingleStep(1)
+            self.thre_slider.show()
+
+        if type != "gradient" and type != "edge_cris":
+            # create radio button for select the size of filter
+            self.radio_button_list = dict()
+            self.filter_size_btn_group = QtWidgets.QButtonGroup(self)
+            self.filter_size_btn_group.setObjectName("button_group")
+            for size in range(3, 8, 2):
+                name = "filter_size_radio_btn_{0}".format(size) 
+                self.radio_button_list[name] = self.create_radio_button(1300, 100 + (size * 20), 98, 19, \
+                    name, "{0} * {0}".format(size))
+                self.filter_size_btn_group.addButton(self.radio_button_list[name], size)
+
+        if type == "median":
+            self.filter_shape_btn_group = QtWidgets.QButtonGroup(self)
+            self.filter_shape_btn_group.setObjectName("shape_button_group")
+            self.radio_button_list["square"] = self.create_radio_button(1300, 300, 98, 19, "square", "square")
+            self.radio_button_list["cross"] = self.create_radio_button(1300, 340, 98, 19, "cross", "cross")
+            self.filter_shape_btn_group.addButton(self.radio_button_list["square"], 1)
+            self.filter_shape_btn_group.addButton(self.radio_button_list["cross"], 2)
 
     def show_noise(self):
         self.noise_img, width, height = self.ori_pcx.noise(self.noise_img)
@@ -261,17 +373,72 @@ class filterWindow(QMainWindow):
 
         return
 
-    def process(self):
+    def process(self, flag = None):
 
         """
         Process the filter depend on the filter size and type
         """
-        filter_size = self.filter_size_btn_group.checkedId()
-        if filter_size == -1: return
         if self.type == "outlier":
+            filter_size = self.filter_size_btn_group.checkedId()
+            if filter_size == -1: return
             threshold = self.thre_slider.value()
             mod_img, width, height = self.ori_pcx.outlier(self.noise_img, filter_size, threshold)
             self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
+            return
+        elif self.type == "median" and flag is None:
+            filter_size = self.filter_size_btn_group.checkedId()
+            if filter_size == -1: return
+            filter_shape = self.filter_shape_btn_group.checkedId()
+            mod_img, width, height = self.ori_pcx.median(self.noise_img, filter_size, filter_shape)
+            self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
+            return
+        elif self.type == "median" and flag == "PMED":
+            filter_size = self.filter_size_btn_group.checkedId()
+            if filter_size == -1: return
+            mod_img, width, height = self.ori_pcx.pmed(self.noise_img, filter_size)
+            self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
+            return
+        elif self.type == "pass" and flag == "low":
+            filter_size = self.filter_size_btn_group.checkedId()
+            if filter_size == -1: return
+            mod_img, width, height = self.ori_pcx.low_pass(self.noise_img, filter_size)
+            self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
+            return
+        elif self.type == "pass" and flag == "high":
+            filter_size = self.filter_size_btn_group.checkedId()
+            if filter_size == -1: return
+            mod_img, width, height = self.ori_pcx.high_pass(self.noise_img, filter_size)
+            self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
+            return
+        elif self.type == "edge_cris":
+            mod_img, width, height = self.ori_pcx.edge_cris(self.noise_img)
+            self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
+            return
+        elif self.type == "high_boost":
+            filter_size = self.filter_size_btn_group.checkedId()
+            if filter_size == -1: return
+            mod_img, width, height = self.ori_pcx.high_boost(self.noise_img, filter_size, flag)
+            self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
+            return
+        elif self.type == "gradient":
+            mod_img, width, height = self.ori_pcx.gradient(self.noise_img, flag)
+            self.display(self.after_img_label, mod_img, width, height, -1, -1)
+            snr_value = self.ori_pcx.cal_snr(mod_img)
+            self.snr_label.setText("SNR Value: {0} db".format(round(snr_value, 2)))
             return
 
     def create_label(self, posx, posy, width, height, name, text, font = 10):

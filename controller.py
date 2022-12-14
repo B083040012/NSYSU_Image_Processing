@@ -89,7 +89,7 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ui.actionRect_Cut.triggered.connect(lambda: self.cut_img("rect", draw = False))
         self.ui.actionCircle_Cut.triggered.connect(lambda: self.cut_img("circle", draw = False))
         self.ui.actionMagic_Wand.triggered.connect(lambda: self.magic_wand(select = False))
-        self.ui.actionAplha.triggered.connect(lambda: self.alpha(slider = False))
+        self.ui.actionAlpha.triggered.connect(lambda: self.alpha(slider = False))
         self.ui.actionBall.triggered.connect(lambda: self.ball()) 
         self.ui.actionMisaligned.triggered.connect(lambda: self.misaligned())
         self.ui.actionDithering.triggered.connect(lambda: self.dithering())
@@ -107,6 +107,11 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ui.actionDiminish_GLS.triggered.connect(lambda: self.gray_level_slicing("diminish_gls"))
         self.ui.actionPreserve_GLS.triggered.connect(lambda: self.gray_level_slicing("preserve_gls"))
         self.ui.actionOutlier.triggered.connect(lambda: self.outlier_filter())
+        self.ui.actionMedian.triggered.connect(lambda: self.median_filter())
+        self.ui.actionPass.triggered.connect(lambda: self.pass_filter())
+        self.ui.actionCris.triggered.connect(lambda: self.edge_cris())
+        self.ui.actionHighBoost.triggered.connect(lambda: self.high_boost())
+        self.ui.actionGradient.triggered.connect(lambda: self.gradient())
         self.ui.actionVideo.triggered.connect(lambda: self.video())
         
     def enable_menu(self):
@@ -120,7 +125,7 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ui.actionShear.setEnabled(True)
         self.ui.menuCut.setEnabled(True)
         self.ui.actionMagic_Wand.setEnabled(True)
-        self.ui.actionAplha.setEnabled(True)
+        self.ui.actionAlpha.setEnabled(True)
         self.ui.actionMisaligned.setEnabled(True)
         self.ui.actionDithering.setEnabled(True)
         self.ui.actionNegative.setEnabled(True)
@@ -130,6 +135,7 @@ class MainWindowController(QtWidgets.QMainWindow):
         self.ui.menuBit_Plane.setEnabled(True)
         self.ui.menuContrast_Stretching.setEnabled(True)
         self.ui.menuGray_Level_Slicing.setEnabled(True)
+        self.ui.menuFilter.setEnabled(True)
 
     def display(self, label, image_array, width, height, posx, posy):
 
@@ -148,11 +154,11 @@ class MainWindowController(QtWidgets.QMainWindow):
             #     self.ui.color_widget.draw_color_histogram(img)
             img = Image.fromarray(img)
         qt_img = ImageQt.ImageQt(img)
-        pixmap_img = QtGui.QPixmap.fromImage(qt_img).scaled(width, height)
+        pixmap_img = QtGui.QPixmap.fromImage(qt_img).scaled(int(width), int(height))
         pixmap_img.detach()
 
         if posx == -1 or posy == -1:
-            label.resize(width, height)
+            label.resize(int(width), int(height))
         else:
             label.setGeometry(QtCore.QRect(posx, posy, width, height))
         label.setPixmap(pixmap_img)
@@ -195,7 +201,7 @@ class MainWindowController(QtWidgets.QMainWindow):
             filename, filetype = QFileDialog.getOpenFileName(self, "Open File", "./ImagePCX")
         except:
             return -1
-            
+
         self.ori_pcx = PcxImage()
         self.ori_pcx.read_from_filename(filename)
         self.ori_pcx.decode_image()
@@ -235,25 +241,22 @@ class MainWindowController(QtWidgets.QMainWindow):
             mod_img = self.ori_pcx.gray_image
             width, height = mod_img.shape[0], mod_img.shape[1]
             self.ui.gray_widget.draw_gray_histogram(mod_img)
-            self.create_img_label(400, 80, 256, 256, "mod_img")
-            self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
-        elif type == "red":
-            pass
-        elif type == "green":
-            pass
-        elif type == "blue":
-            pass
+        else:
+            mod_img, width, height = self.ori_pcx.rgb_channel(type)
+            self.ui.color_widget.draw_single_color_histogram(mod_img, type)
+        self.create_img_label(400, 80, 256, 256, "mod_img")
+        self.display(self.img_label_dict["mod_img"], mod_img, width, height, -1, -1)
 
         return
 
     def enlarge_img(self, type, slider = True):
         if slider == False:
             name = "enlarge_label"
-            slider_num = "\n-4                                             4"
+            slider_num = "\n1/4                                             4"
             self.create_label(160, 400, 240, 100, name, type + slider_num)
 
             name = "enlarge_slider"
-            self.create_slider(200, 450, 160, 22, name, -4, 4, 0.5)
+            self.create_slider(200, 450, 160, 22, name, -2, 1, 1)
             self.slider_dict[name].valueChanged.connect(lambda: self.enlarge_img(type, slider = True))
             return
         times = self.slider_dict["enlarge_slider"].value()
@@ -287,7 +290,7 @@ class MainWindowController(QtWidgets.QMainWindow):
             self.create_label(160, 560, 240, 100, name, "shear" + slider_num)
 
             name = "shear_slider"
-            self.create_slider(200, 600, 160, 22, name, 0, 10, 0.5)
+            self.create_slider(200, 600, 160, 22, name, 0, 20, 1)
             self.slider_dict[name].valueChanged.connect(lambda: self.shear(slider = True))
             return
         slope = self.slider_dict["shear_slider"].value()
@@ -428,7 +431,7 @@ class MainWindowController(QtWidgets.QMainWindow):
             self.create_label(160, 710, 240, 100, name, "threshold" + slider_num)
 
             name = "threshold_slider"
-            self.create_slider(200, 760, 160, 22, name, 0, 255, 0.5)
+            self.create_slider(200, 760, 160, 22, name, 0, 255, 1)
             self.slider_dict[name].valueChanged.connect(lambda: self.custom_threshold(slider = True))
             return
         threshold_value = self.slider_dict["threshold_slider"].value()
@@ -449,7 +452,7 @@ class MainWindowController(QtWidgets.QMainWindow):
             self.create_label(160, 790, 240, 100, name, "local_threshold" + slider_num)
 
             name = "local_threshold_slider"
-            self.create_slider(200, 840, 160, 22, name, 0, 10, 0.5)
+            self.create_slider(200, 840, 160, 22, name, 0, 10, 1)
             self.slider_dict[name].valueChanged.connect(lambda: self.local_threshold(type, slider = True))
             return
         C = self.slider_dict["local_threshold_slider"].value()
@@ -502,6 +505,36 @@ class MainWindowController(QtWidgets.QMainWindow):
     def outlier_filter(self):
         outlier_filter_win = filterWindow(self.ori_pcx, "outlier", self)
         outlier_filter_win.show()
+
+        return
+
+    def median_filter(self):
+        median_filter_win = filterWindow(self.ori_pcx, "median", self)
+        median_filter_win.show()
+
+        return
+
+    def pass_filter(self):
+        pass_filter_win = filterWindow(self.ori_pcx, "pass", self)
+        pass_filter_win.show()
+
+        return
+
+    def edge_cris(self):
+        edge_filter_win = filterWindow(self.ori_pcx, "edge_cris", self)
+        edge_filter_win.show()
+
+        return
+
+    def high_boost(self):
+        high_boost_win = filterWindow(self.ori_pcx, "high_boost", self)
+        high_boost_win.show()
+
+        return
+
+    def gradient(self):
+        gradient_win = filterWindow(self.ori_pcx, "gradient", self)
+        gradient_win.show()
 
         return
 

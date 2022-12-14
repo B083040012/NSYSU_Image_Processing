@@ -44,3 +44,25 @@ class histogramWidget(QWidget):
         self.canvas.axes.set_xlim([0, 255])
         self.canvas.axes.autoscale()
         self.canvas.draw()
+
+    def draw_single_color_histogram(self, img, type):
+        if self.canvas.axes is None:
+            self.initial_subplot()
+        self.canvas.figure.subplots_adjust(left=0.15, right=0.95,
+            bottom=0.15, top=0.95, hspace=0, wspace=0)
+        if type == "red":
+            r_y = img[:, :, 0].flatten()
+        elif type == "green":
+            g_y = img[:, :, 1].flatten()
+        elif type == "blue":
+            b_y = img[:, :, 2].flatten()
+        self.canvas.axes.clear()
+        if type == "red":
+            self.canvas.axes.hist(r_y, 255, range = (0, 254), color = 'red')
+        elif type == "green":
+            self.canvas.axes.hist(g_y, 255, range = (0, 254), color = 'green')
+        elif type == "blue":
+            self.canvas.axes.hist(b_y, 255, range = (0, 254), color = 'blue')
+        self.canvas.axes.set_xlim([0, 255])
+        self.canvas.axes.autoscale()
+        self.canvas.draw()

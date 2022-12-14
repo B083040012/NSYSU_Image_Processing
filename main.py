@@ -26,14 +26,14 @@ if __name__ == '__main__':
     #     opaqueness+=step
     
     
-    # splash.show()
-    # for i in range(0, 100):
-    #     progressBar.setValue(i)
-    #     t = time.time()
-    #     while time.time() < t + 0.01:
-    #        app.processEvents()
-    # time.sleep(1)
-    # splash.close()
+    splash.show()
+    for i in range(0, 100):
+        progressBar.setValue(i)
+        t = time.time()
+        while time.time() < t + 0.01:
+           app.processEvents()
+    time.sleep(1)
+    splash.close()
 
     # show the main window
     window = MainWindowController()

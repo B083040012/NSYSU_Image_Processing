@@ -213,6 +213,19 @@ class PcxImage():
 
         return self.mod_image, self.mod_width, self.mod_height
 
+    def rgb_channel(self, type):
+        width, height = self.width, self.height
+        newShape = list(map(int, [width, height, 3]))
+        channel_img = np.zeros(newShape, dtype = np.uint8) 
+        if type == "red":
+            channel_img[:, :, 0] = self.ori_image[:, :, 0]
+        elif type == "green":
+            channel_img[:, :, 1] = self.ori_image[:, :, 1]
+        elif type == "blue":
+            channel_img[:, :, 2] = self.ori_image[:, :, 2]
+        
+        return channel_img, width, height
+
     def enlarge(self, type, times):
         
         """
@@ -323,21 +336,64 @@ class PcxImage():
         # self.mod_height = self.rotate_height
         return self.rotate_image, self.rotate_width, self.rotate_height
 
-    def shear(self, slope):
+    def shear_cal(self, angle, x, y):
 
-        """
-        Shear the image
-        """
+        tangent=math.tan(angle/2)
+        new_x=round(x-y*tangent)
+        new_y=y
+        
+        return new_y,new_x
+
+    def shear(self, angle):
         self.initial_mod_image("general")
-        height = self.mod_height + slope*self.mod_width + 0.5
-        width = self.mod_width
-        newShape = list(map(int, [abs(height), abs(width), 3]))
-        shear_image = np.full(newShape, 255)
-        for x in range(self.mod_height):
-            for y in range(self.mod_width):
-                new_x, new_y = (x + slope*y + 0.5), y
-                shear_image[int(abs(new_x)), int(abs(new_y)), :] = self.ori_image[x, y, :]
-        return shear_image, width, height
+        angle=math.radians(angle)                           
+        cosine=math.cos(angle)
+        sine=math.sin(angle)
+
+        height=self.mod_image.shape[0]
+        width=self.mod_image.shape[1]
+
+        new_height  = round(abs(height*cosine)+abs(width*sine))+1
+        new_width  = round(abs(width*cosine)+abs(height*sine))+1
+
+        output=np.zeros((new_height,new_width,3))
+
+        original_centre_height   = round(((height+1)/2)-1)
+        original_centre_width    = round(((width+1)/2)-1)
+
+        new_centre_height= round(((new_height+1)/2)-1)
+        new_centre_width= round(((new_width+1)/2)-1)
+
+
+        for i in range(height):
+            for j in range(width):
+                y=height-1-i-original_centre_height                   
+                x=width-1-j-original_centre_width 
+
+                new_y,new_x=self.shear_cal(angle,x,y)
+
+                new_y=new_centre_height-new_y
+                new_x=new_centre_width-new_x
+                
+                output[new_y,new_x,:]=self.ori_image[i,j,:]
+
+        return output, width, height
+
+    # def shear(self, slope):
+
+    #     """
+    #     Shear the image
+    #     """
+    #     self.initial_mod_image("general")
+    #     height = self.mod_height + slope*self.mod_width + 0.5
+    #     width = self.mod_width
+    #     newShape = list(map(int, [abs(height), abs(width), 3]))
+    #     shear_image = np.full(newShape, 255)
+    #     for x in range(self.mod_height):
+    #         for y in range(self.mod_width):
+    #             new_x, new_y = (x + slope*y + 0.5), y
+    #             shear_image[int(abs(new_x)), int(abs(new_y)), :] = self.ori_image[x, y, :]
+    #     return shear_image, width, height
 
     def cut(self, type, cor1, cor2):
 
@@ -829,3 +885,318 @@ class PcxImage():
                 if mod_img[x][y] -  mean > threshold: mod_img[x][y] = int(mean)
 
         return mod_img, width, height
+
+    def median(self, input_image, filter_size, filter_shape):
+
+        """
+        filter_shape: 1 for square, 2 for cross
+        """
+        
+        width = input_image.shape[0]
+        height = input_image.shape[1]
+        newShape = list(map(int, [width, height, 1]))
+        mod_img = np.zeros(newShape, dtype = np.uint8)
+        fix = int((filter_size - 1) / 2)
+        for x in range(width):
+            for y in range(height):
+                xmin = (x - fix) if(x - fix) >= 0 else 0
+                ymin = (y - fix) if (y - fix) >= 0 else 0
+                xmax = (x + fix + 1) if (x + fix + 1) <= width else width
+                ymax = (y + fix + 1) if (y + fix + 1) <= height else height
+                if filter_shape == 1:
+                    tmp_list = input_image[xmin : xmax, ymin : ymax].flatten()
+                    while len(tmp_list) < filter_size * filter_size:
+                        tmp_list = np.append(tmp_list, 0)
+                    median = np.median(tmp_list)
+                elif filter_shape == 2:
+                    tmp_list = input_image[xmin : xmax, y].flatten()
+                    tmp_list = np.delete(tmp_list, np.where(input_image[x][y]))
+                    tmp_list2 = input_image[x, ymin : ymax].flatten()
+                    for ele in tmp_list2:
+                        tmp_list = np.append(tmp_list, ele)
+                    while len(tmp_list) < filter_size * 2 - 1:
+                        tmp_list = np.append(tmp_list, 0)
+                    median = np.median(tmp_list)
+                mod_img[x][y] = median
+
+        return mod_img, width, height
+
+    def maxmin(self, input):
+        flat = input.flatten()
+        l = len(flat)
+        m = int((l + 1) / 2)
+        min_list = list()
+        for i in range(1, (l - m + 2)):
+            tmp = flat[i:(i + m - 1)].min()
+            min_list.append(tmp)
+        min_list = np.array(min_list)
+
+        return min_list.max()
+
+    def minmax(self, input):
+        flat = input.flatten()
+        l = len(flat)
+        m = int((l + 1) / 2)
+        max_list = list()
+        for i in range(1, (l - m + 2)):
+            tmp = flat[i:(i + m - 1)].max()
+            max_list.append(tmp)
+        max_list = np.array(max_list)
+
+        return max_list.min()
+
+    def pmed(self, input_image, filter_size):
+
+        width = input_image.shape[0]
+        height = input_image.shape[1]
+        newShape = list(map(int, [width, height, 1]))
+        mod_img = np.zeros(newShape, dtype = np.uint8)
+        fix = int((filter_size - 1) / 2)
+        for x in range(width):
+            for y in range(height):
+                xmin = (x - fix) if(x - fix) >= 0 else 0
+                ymin = (y - fix) if (y - fix) >= 0 else 0
+                xmax = (x + fix + 1) if (x + fix + 1) <= width else width
+                ymax = (y + fix + 1) if (y + fix + 1) <= height else height
+                maxmin = self.maxmin(input_image[xmin : xmax, ymin : ymax])
+                minmax = self.minmax(input_image[xmin : xmax, ymin : ymax])
+                mod_img[x][y] = (maxmin / 2) + (minmax / 2)
+
+        return mod_img, width, height
+
+    def low_pass(self, input_image, filter_size):
+
+        width = input_image.shape[0]
+        height = input_image.shape[1]
+        newShape = list(map(int, [width, height, 1]))
+        mod_img = np.zeros(newShape, dtype = np.uint8)
+        fix = int((filter_size - 1) / 2)
+        for x in range(width):
+            for y in range(height):
+                xmin = (x - fix) if(x - fix) >= 0 else 0
+                ymin = (y - fix) if (y - fix) >= 0 else 0
+                xmax = (x + fix + 1) if (x + fix + 1) <= width else width
+                ymax = (y + fix + 1) if (y + fix + 1) <= height else height
+                tmp_list = input_image[xmin : xmax, ymin : ymax].flatten()
+                while len(tmp_list) > filter_size * filter_size:
+                    tmp_list = np.append(tmp_list, 0)
+                mean = tmp_list.sum() / (filter_size * filter_size)
+                mod_img[x][y] = int(mean)
+        return mod_img, width, height
+
+    def high_pass(self, input_image, filter_size):
+
+        # width = input_image.shape[0]
+        # height = input_image.shape[1]
+        # mod_img = np.copy(input_image)
+        # low_image, w, h = self.low_pass(input_image, filter_size)
+        # mod_img = mod_img - low_image
+
+        width = input_image.shape[0]
+        height = input_image.shape[1]
+        newShape = list(map(int, [width, height, 1]))
+        mod_img = np.zeros(newShape, dtype = np.uint8)
+        fix = int((filter_size - 1) / 2)
+        if filter_size == 3:
+            kernel = np.array([[-1, -1, -1],
+                               [-1,  8, -1],
+                               [-1, -1, -1]])
+        elif filter_size == 5:
+            kernel = np.array([[-1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1],
+                               [-1, -1, 24, -1, -1],
+                               [-1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1]])
+        elif filter_size == 7:
+            kernel = np.array([[-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, 48, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1]])
+        for x in range((fix), (width - fix)):
+            for y in range((fix), (height - fix)):
+                xmin = (x - fix)
+                ymin = (y - fix)
+                xmax = (x + fix + 1)
+                ymax = (y + fix + 1)
+                data = input_image[xmin : xmax, ymin : ymax]
+                # print("\n\ndata: {0}".format(data))
+                data = np.resize(data, (filter_size, filter_size))
+                result = np.multiply(data, kernel)
+                mean = result.sum()
+                if mean < 0: mean = 0
+                if mean > 255: mean = 255
+                mod_img[x][y] = int(mean)
+        # mod_img = input_image - mod_img
+        return mod_img, width, height
+
+    def edge_cris(self, input_image):
+
+        width = input_image.shape[0]
+        height = input_image.shape[1]
+        newShape = list(map(int, [width, height, 1]))
+        mod_img = np.zeros(newShape, dtype = np.uint8)
+        mod_img = np.copy(input_image)
+        filter_size = 3
+        fix = int((filter_size - 1) / 2)
+
+        # kernel = np.array([[-1, -1, -1],
+        #                    [-1,  9, -1],
+        #                    [-1, -1, -1]])
+        kernel = np.array([[ 0, -1,  0],
+                           [-1,  5, -1],
+                           [ 0, -1,  0]])
+        # kernel = np.array([[ 1, -2,  1],
+        #                    [-2,  5, -2],
+        #                    [ 1, -2,  1]])
+
+        for x in range((fix), (width - fix)):
+            for y in range((fix), (height - fix)):
+                xmin = (x - fix)
+                ymin = (y - fix)
+                xmax = (x + fix + 1)
+                ymax = (y + fix + 1)
+                data = input_image[xmin : xmax, ymin : ymax]
+                data = np.resize(data, (filter_size, filter_size))
+                result = np.multiply(data, kernel)
+                # print("result: {0}\n\n".format(result))
+                mean = result.sum()
+                if mean < 0: mean = 0
+                if mean > 255: mean = 255
+                # mean /=  (filter_size * filter_size)
+                mod_img[x][y] = int(mean)
+        # mod_img = input_image - mod_img
+        return mod_img, width, height
+
+    def high_boost(self, input_image, filter_size, a):
+
+        width = input_image.shape[0]
+        height = input_image.shape[1]
+        newShape = list(map(int, [width, height, 1]))
+        mod_img = np.zeros(newShape, dtype = np.uint8)
+        mod_img = np.copy(input_image)
+        fix = int((filter_size - 1) / 2)
+        if filter_size == 3:
+            kernel = np.array([[-1, -1, -1],
+                               [-1,  (9*a)-1, -1],
+                               [-1, -1, -1]])
+        elif filter_size == 5:
+            kernel = np.array([[-1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1],
+                               [-1, -1, (25*a)-1, -1, -1],
+                               [-1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1]])
+        elif filter_size == 7:
+            kernel = np.array([[-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, (49*a)-1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1],
+                               [-1, -1, -1, -1, -1, -1, -1]])
+        for x in range((fix), (width - fix)):
+            for y in range((fix), (height - fix)):
+                xmin = (x - fix)
+                ymin = (y - fix)
+                xmax = (x + fix + 1)
+                ymax = (y + fix + 1)
+                data = input_image[xmin : xmax, ymin : ymax]
+                # print("\n\ndata: {0}".format(data))
+                data = np.resize(data, (filter_size, filter_size))
+                result = np.multiply(data, kernel)
+                mean = result.sum()
+                if mean < 0: mean = 0
+                if mean > 255: mean = 255
+                mod_img[x][y] = int(mean)
+        return mod_img, width, height
+
+    def gradient(self, input_image, type):
+        width = input_image.shape[0]
+        height = input_image.shape[1]
+        newShape = list(map(int, [width, height, 1]))
+        mod_img = np.zeros(newShape, dtype = np.uint8)
+
+        if type == "robert":
+            kernelx = np.array([[1, 0],
+                                [0, -1]])
+            kernely = np.array([[0, -1],
+                                [1,  0]])
+            filter_size = 2
+            fix = 1
+            for x in range(0, (width - 1)):
+                for y in range(0, (height - 1)):
+                    xmin = (x)
+                    ymin = (y)
+                    xmax = (x + fix + 1)
+                    ymax = (y + fix + 1)
+                    data = input_image[xmin : xmax, ymin : ymax]
+                    # print("\n\ndata: {0}".format(data))
+                    data = np.resize(data, (filter_size, filter_size))
+                    resultx = np.multiply(data, kernelx)
+                    resulty = np.multiply(data, kernely)
+                    meanx = resultx.sum()
+                    meany = resulty.sum()
+                    # if meanx < 0: meanx = 0
+                    # if meanx > 255: meanx = 255
+                    # if meany < 0: meany = 0
+                    # if meany > 255: meany = 255
+                    final = math.sqrt((meanx * meanx) + (meany * meany))
+                    if final < 0: final = 0
+                    if final > 255: final = 255
+                    mod_img[x][y] = int(final)
+
+        elif type == "sobel":
+            kernelx = np.array([[-1, 0, 1],
+                                [-2, 0, 2],
+                                [-1, 0, 1]])
+            kernely = np.array([[ 1, 2, 1],
+                                [ 0, 0, 0],
+                                [-1,-2,-1]])
+            filter_size = 3
+            fix = 1
+            for x in range(0, (width - 1)):
+                for y in range(0, (height - 1)):
+                    xmin = (x - fix)
+                    ymin = (y - fix)
+                    xmax = (x + fix + 1)
+                    ymax = (y + fix + 1)
+                    data = input_image[xmin : xmax, ymin : ymax]
+                    data = np.resize(data, (filter_size, filter_size))
+                    resultx = np.multiply(data, kernelx)
+                    resulty = np.multiply(data, kernely)
+                    meanx = resultx.sum()
+                    meany = resulty.sum()
+                    final = math.sqrt((meanx * meanx) + (meany * meany))
+                    if final < 0: final = 0
+                    if final > 255: final = 255
+                    mod_img[x][y] = int(final)
+
+        elif type == "prewitt":
+            kernelx = np.array([[-1, 0, 1],
+                                [-1, 0, 1],
+                                [-1, 0, 1]])
+            kernely = np.array([[ 1, 1, 1],
+                                [ 0, 0, 0],
+                                [-1,-1,-1]])
+            filter_size = 3
+            fix = 1
+            for x in range(0, (width - 1)):
+                for y in range(0, (height - 1)):
+                    xmin = (x - fix)
+                    ymin = (y - fix)
+                    xmax = (x + fix + 1)
+                    ymax = (y + fix + 1)
+                    data = input_image[xmin : xmax, ymin : ymax]
+                    data = np.resize(data, (filter_size, filter_size))
+                    resultx = np.multiply(data, kernelx)
+                    resulty = np.multiply(data, kernely)
+                    meanx = resultx.sum()
+                    meany = resulty.sum()
+                    final = math.sqrt((meanx * meanx) + (meany * meany))
+                    if final < 0: final = 0
+                    if final > 255: final = 255
+                    mod_img[x][y] = int(final)
+        return mod_img, width, height
+            
